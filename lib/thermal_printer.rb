@@ -5,6 +5,8 @@ class ThermalPrinter
   attr_reader :printer
   SERIAL_PORT = '/dev/ttyAMA0'
   BAUDRATE = 19200
+  PRINT_DENSITY= 15
+  PRINT_BREAK_TIME = 15
   # TIMEOUT = 3
 
   ESC = 27
@@ -12,24 +14,16 @@ class ThermalPrinter
 
   def initialize(heat_time: 80, heat_interval: 2, heating_dots: 7, serialport: SERIAL_PORT)
     @printer = Serial.new(serialport, BAUDRATE)
-    printer.write(ESC) # ESC - command
-    printer.write(64.chr) # @   - initialize
-    printer.write(ESC) # ESC - command
-    printer.write(55.chr) # 7   - print settings
-    printer.write(heating_dots.chr)  # Heating dots (20=balance of darkness vs no jams) default = 20
-    printer.write(heat_time.chr) # heatTime Library default = 255 (max)
-    printer.write(heat_interval.chr) # Heat interval (500 uS = slower, but darker) default = 250
+    write_decimal(ESC,64) # initialize
+    write_decimal(ESC,55,heating_dots,heat_time,heat_interval) # print settings
 
     # Description of print density from page 23 of the manual:
     # DC2 # n Set printing density
     # Decimal: 18 35 n
     # D4..D0 of n is used to set the printing density. Density is 50% + 5% * n(D4-D0) printing density.
     # D7..D5 of n is used to set the printing break time. Break time is n(D7-D5)*250us.
-    print_density = 15 # 120% (? can go higher, text is darker but fuzzy)
-    print_break_time = 15 # 500 uS
-    printer.write(18.chr)
-    printer.write(35.chr)
-    printer.write(((print_density << 4) | print_break_time).chr)
+    print_density = ((PRINT_DENSITY << 4) | PRINT_BREAK_TIME)
+    write_decimal(18,35,print_density)
   end
 
   def offline
